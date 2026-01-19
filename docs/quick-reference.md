@@ -193,6 +193,7 @@ Migrate if you need:
 
 ## Links
 
+- [SDK Overview (Foundry SDK, OpenAI SDK, Foundry Tools)](sdk-overview.md)
 - [Chat Completions vs Responses Guide](chat-vs-responses.md)
 - [Foundry Agent Service: Which API to Use?](agents-and-apis.md)
 - [API Version Lifecycle (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry)

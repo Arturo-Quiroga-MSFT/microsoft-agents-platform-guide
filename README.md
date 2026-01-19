@@ -9,6 +9,7 @@ This workspace documents Azure OpenAI usage in Azure AI Foundry / Microsoft Foun
 ## Docs
 
 - [Quick Reference (all APIs)](docs/quick-reference.md) ← Start here
+- [SDK Overview (Foundry SDK, OpenAI SDK, Foundry Tools)](docs/sdk-overview.md)
 - [Chat Completions vs Responses](docs/chat-vs-responses.md)
 - [Foundry Agent Service: Which API to Use?](docs/agents-and-apis.md)
 

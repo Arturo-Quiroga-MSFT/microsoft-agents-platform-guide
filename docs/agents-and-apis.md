@@ -206,3 +206,10 @@ print(response.output_text)
 - **Azure SDK for Python (agents)**: https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/ai/azure-ai-projects
 - **Agent samples**: https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/ai/azure-ai-agents/samples
 - **Assistants API (being replaced)**: https://learn.microsoft.com/en-us/azure/ai-foundry/openai/concepts/assistants?view=foundry
+
+## See Also
+
+- [SDK Overview (Foundry SDK, OpenAI SDK, Foundry Tools)](sdk-overview.md)
+- [Chat Completions vs Responses (detailed guide)](chat-vs-responses.md)
+- [Quick Reference](quick-reference.md)
+

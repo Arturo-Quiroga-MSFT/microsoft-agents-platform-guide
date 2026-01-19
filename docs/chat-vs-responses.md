@@ -117,3 +117,9 @@ print(chat.choices[0].message.content)
   https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?view=foundry
 - Chat completions overview:
   https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/chatgpt?view=foundry
+
+## See Also
+
+- [SDK Overview (Foundry SDK, OpenAI SDK, Foundry Tools)](sdk-overview.md)
+- [Foundry Agent Service: Which API to Use?](agents-and-apis.md)
+- [Quick Reference](quick-reference.md)
