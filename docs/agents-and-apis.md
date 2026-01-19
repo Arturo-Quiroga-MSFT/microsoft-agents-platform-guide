@@ -9,6 +9,8 @@ This guide clarifies which Azure OpenAI API surfaces (Chat Completions, Response
 - **Agent Service SDK**: `azure-ai-agents` (Python) — has its own `agents.create_agent()`, `threads.create()`, `messages.create()`, `runs.create()` operations.
 - **Not for direct use with agents**: Chat Completions API or Responses API are not called directly when using Agent Service.
 
+- **Key Takeaway**: Microsoft Foundry Agent Service is a separate orchestration platform with its own API surface. It uses the azure-ai-agents SDK with a threads/runs/messages pattern for server-side agent orchestration, storing state in Cosmos DB. This is distinct from the stateless Chat Completions API and unified Responses API, which are for direct model interaction
+
 ## What is Microsoft Foundry Agent Service?
 
 Foundry Agent Service is a **production-ready platform** for building and deploying intelligent agents with:
