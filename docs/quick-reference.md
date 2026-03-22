@@ -1,5 +1,7 @@
 # Azure OpenAI API Quick Reference (2026)
 
+> **Last updated: 2026-03-22** — synced with [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry), [supported languages](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages?view=foundry&pivots=programming-language-python), and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
+
 A concise comparison of the main API surfaces for Azure OpenAI usage in Microsoft Foundry.
 
 ## API Surface Summary
@@ -8,7 +10,7 @@ A concise comparison of the main API surfaces for Azure OpenAI usage in Microsof
 |---|---|---|---|---|
 | **Chat Completions** | `/openai/v1/chat/completions` | Lightweight stateless chat | Client-managed | `openai` (Python) |
 | **Responses** | `/openai/v1/responses` | Modern unified chat + features | Optional server-side | `openai` (Python) |
-| **Foundry Agent Service** | `/agents/...`, `/threads/...`, `/runs/...` | Production agents with orchestration | Server-managed (Cosmos DB) | `azure-ai-agents` (via `AIProjectClient`) |
+| **Foundry Agent Service** | `/agents/...`, `/conversations/...` | Production agents with orchestration | Server-managed (Cosmos DB) | `azure-ai-projects` v2 (via `AIProjectClient`) |
 
 ## Decision Tree
 
@@ -108,7 +110,7 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 token_provider = get_bearer_token_provider(
     DefaultAzureCredential(),
-    "https://cognitiveservices.azure.com/.default"
+    "https://ai.azure.com/.default"
 )
 
 client = OpenAI(
@@ -141,30 +143,55 @@ project_client = AIProjectClient(
 | Feature | Chat Completions | Responses | Agent Service |
 |---|---|---|---|
 | **Stateless chat** | ✅ | ✅ | ✅ |
-| **Server-side state** | ❌ | Optional (conversations) | ✅ (threads in Cosmos) |
+| **Server-side state** | ❌ | Optional (conversations) | ✅ (conversations in Cosmos) |
 | **Tool orchestration** | Manual | Server-side | Server-side + retry |
-| **MCP tools** | ❌ | ✅ | ✅ (via toolsets) |
-| **Multi-agent coordination** | ❌ | ❌ | ✅ |
+| **MCP tools (remote)** | ❌ | ✅ (GA) | ✅ (GA) |
+| **Multi-agent coordination** | ❌ | ❌ | ✅ (incl. A2A preview) |
 | **Content filters** | ✅ | ✅ | ✅ (enforced by default) |
 | **Enterprise RBAC** | ✅ | ✅ | ✅ (built-in) |
 | **Observability** | Basic | Basic | Full (traces, logs, App Insights) |
 | **Reasoning options** | ✅ | ✅ | ✅ |
-| **Image generation** | ❌ | ✅ (new) | Coming soon |
+| **Image generation** | ❌ | ✅ (GA) | ✅ |
+| **Response chaining** | ❌ | ✅ (`previous_response_id`) | N/A |
+| **Server-side retrieve/delete** | ❌ | ✅ (30-day retention) | N/A |
+| **Async background tasks** | ❌ | ✅ | N/A |
+| **Multi-provider models** (DeepSeek, Grok) | ✅ | ✅ | ✅ |
 
 ## API Version Notes
 
 ### OpenAI v1 GA (Chat Completions & Responses)
 
-- **Base URL**: `/openai/v1`
+- **Base URL**: `/openai/v1` — two equivalent forms:
+  - `https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/`
+  - `https://YOUR-RESOURCE-NAME.services.ai.azure.com/openai/v1/`
 - **No `api-version` required** (GA features)
-- **Preview features**: use preview headers (e.g., `"aoai-evals":"preview"`)
-- **Status**: Generally Available (August 2025 onwards)
+- **Preview features**: opt-in via feature-specific headers or path segments
+- **Status**: Generally Available (since August 2025)
+
+#### v1 API endpoint status (Mar 2026)
+
+| API Path | Status |
+|---|---|
+| `/openai/v1/chat/completions` | GA |
+| `/openai/v1/embeddings` | GA |
+| `/openai/v1/evals` | **GA** (previously required `"aoai-evals":"preview"` header; no longer needed) |
+| `/openai/v1/files` | GA |
+| `/openai/v1/fine_tuning/` | GA |
+| `/openai/v1/models` | GA |
+| `/openai/v1/responses` | **GA** |
+| `/openai/v1/vector_stores` | GA |
+| `/openai/v1/audio/speech` | Preview — requires `api-version=preview` query param |
+| `/openai/v1/fine_tuning/.../copy` | Preview — requires header `"aoai-copy-ft-checkpoints":"preview"` |
+| `/openai/v1/fine_tuning/alpha/graders/` | Preview (path signals preview; no extra header needed) |
 
 ### Agent Service
 
-- **API version**: `2025-05-15-preview` (in SDK requests)
 - **Endpoint**: Project-level (not model-level)
-- **Status**: Generally Available (GA)
+- **SDK**: `azure-ai-projects` v2 (via `AIProjectClient`); `azure-ai-agents` is deprecated
+- **Status**: Generally Available (GA), with new developer experience (conversations/responses pattern)
+- **State storage**: Server-side, backed by Cosmos DB (single-tenant; bring-your-own for BCDR)
+- **API pattern**: Classic `threads/runs/messages` is supported for compatibility; new API uses `conversations` and `responses` (OpenAI Responses protocol)
+- **Control plane**: GA `2025-06-01`, Preview `2025-07-01-preview`
 
 ## When to Migrate
 
@@ -174,14 +201,30 @@ If you're using Azure OpenAI **Assistants API** (preview), migrate to **Foundry 
 - Better enterprise features
 - Improved tool orchestration
 - Full observability and governance
+
+### From Classic Agent Service → New Agent Developer Experience
+
+Microsoft released a new Foundry Agent Service API that replaces the classic threads/runs/messages pattern:
+
+| Classic (old) | New API | Details |
+|---|---|---|
+| `threads` | `conversations` | Supports streams of items, not only messages |
+| `runs` | `responses` | Uses OpenAI Responses protocol; tool-call loops are explicitly managed |
+| `assistants` / `agents` | `agents (new)` | Prompt agents, workflow agents, hosted agents with stateful context |
+
+See the [official migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) for details.
+
+> **Deadline**: Standard deployments on the old platform are retiring by March 31, 2026.
 - Active support and feature updates
 
 ### From Chat Completions → Responses
 
 Consider migrating if you:
-- Want the latest features (MCP, reasoning, image generation)
+- Want the latest features (remote MCP, async background tasks, image generation, response chaining)
 - Need a unified API surface for chat + assistants-style features
 - Are starting a new project
+
+> **Note**: Both Chat Completions and Responses API now support **multi-provider models** (DeepSeek R1 / MAI-DS-R1, Grok) deployed in your Foundry resource alongside Azure OpenAI models.
 
 ### From Responses → Agent Service
 

@@ -1,5 +1,7 @@
 # Azure OpenAI API versions (2026)
 
+> **Last updated: 2026-03-22** — all docs synced against official Microsoft Learn sources.
+
 This workspace documents Azure OpenAI usage in Azure AI Foundry / Microsoft Foundry, with a focus on:
 
 - The OpenAI v1 GA API on Azure (`/openai/v1`)

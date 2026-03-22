@@ -1,5 +1,7 @@
 # Azure AI Foundry SDK Landscape
 
+> **Last updated: 2026-03-22** — synced with [supported languages](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages?view=foundry&pivots=programming-language-python), [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry), and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
+
 This guide explains the **SDK ecosystem** for Azure AI Foundry and how each SDK relates to the APIs (Chat Completions, Responses, Agent Service) documented in this repo.
 
 ## Overview: SDKs and Endpoints
@@ -15,6 +17,10 @@ Creating a Foundry resource unlocks access to models, agents, and tools through 
 
 **Key Note**: A Foundry resource provides all endpoints. An Azure OpenAI resource provides only the `/openai/v1` endpoint.
 
+**Dual base URL**: The `/openai/v1` endpoint can be reached via two equivalent base URLs:
+- `https://YOUR-RESOURCE-NAME.openai.azure.com/openai/v1/`
+- `https://YOUR-RESOURCE-NAME.services.ai.azure.com/openai/v1/`
+
 ## Foundry SDK (`azure-ai-projects`)
 
 The **Azure AI Projects client library** is a unified SDK that connects to a single project endpoint, simplifying application configuration.
@@ -22,13 +28,15 @@ The **Azure AI Projects client library** is a unified SDK that connects to a sin
 ### Installation
 
 ```bash
-# Stable (for Foundry classic projects)
-pip install azure-ai-projects azure-identity openai
-
-# Preview (for Foundry projects)
+# v2 SDK (for new Foundry projects, conversations/responses pattern)
+# Bundles openai and azure-identity as direct dependencies
 pip install --pre azure-ai-projects
-pip install azure-identity openai
+
+# v1 SDK (for Foundry classic projects)
+pip install azure-ai-projects azure-identity openai
 ```
+
+> **SDK consolidation note**: All Microsoft Foundry SDK development is consolidating into the `azure-ai-projects` v2 package. Agents, inference, evaluations, and memory operations that previously lived in separate packages (`azure-ai-agents`, etc.) are unified under the v2 beta line. The `azure-ai-agents` dependency has been dropped; agents now use the OpenAI Responses protocol directly via `AIProjectClient`.
 
 ### Two Client Types
 
@@ -67,25 +75,28 @@ project = AIProjectClient(
 This client gives you access to **Foundry direct models** (non-Azure-OpenAI models hosted in Foundry). The project endpoint serves this traffic on the `/openai` route.
 
 ```python
-# Get an OpenAI-compatible client from the project
-openai_client = project.inference.get_azure_openai_client(api_version="2024-10-21")
+# Get OpenAI-compatible client scoped to your project
+openai_client = project.get_openai_client()
 
-# Use Responses API
+# Use Responses API (works with Azure OpenAI models AND Foundry direct models)
 response = openai_client.responses.create(
-    model="gpt-5.2",
+    model="gpt-4.1-nano",  # your deployment name
     input="What is the speed of light?",
 )
 print(response.output_text)
 ```
 
+> In the v2 SDK, `get_openai_client()` returns an `openai.OpenAI` client pre-configured for your Foundry project endpoint. The older `inference.get_azure_openai_client(api_version=...)` method is from v1 classic.
+
 ### What You Can Do with Foundry SDK
 
 - ✅ Access Foundry Models (including Azure OpenAI and Foundry direct models)
-- ✅ Use the Foundry Agent Service (`project.agents`)
+- ✅ Use the Foundry Agent Service (conversations and responses pattern in v2)
 - ✅ Run cloud evaluations
-- ✅ Enable app tracing (Application Insights integration)
+- ✅ Enable app tracing (Application Insights integration with OpenTelemetry `gen_ai.*` conventions)
 - ✅ Fine-tune models
 - ✅ Get endpoints and keys for Foundry Tools
+- ✅ Manage memory stores (v2)
 
 ## OpenAI SDK (`openai`)
 
@@ -112,10 +123,10 @@ project = AIProjectClient(
 )
 
 # Get OpenAI client scoped to your project
-openai_client = project.get_openai_client(api_version="2024-10-21")
+openai_client = project.get_openai_client()
 
 response = openai_client.responses.create(
-    model="gpt-5.2",
+    model="gpt-4.1-nano",  # your deployment name
     input="What is the size of France in square miles?",
 )
 print(response.output_text)
@@ -129,7 +140,7 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 token_provider = get_bearer_token_provider(
     DefaultAzureCredential(), 
-    "https://cognitiveservices.azure.com/.default"
+    "https://ai.azure.com/.default"
 )
 
 client = OpenAI(  
@@ -144,15 +155,17 @@ response = client.responses.create(
 print(response.model_dump_json(indent=2))
 ```
 
+> **Foundry direct models**: The Responses API (and Chat Completions API) also works with non-Azure-OpenAI models hosted in Foundry — such as **DeepSeek R1** (deployed as `MAI-DS-R1`), **Grok**, and other Microsoft AI models.
+
 ### OpenAI SDK Capabilities
 
 | API | Available via OpenAI SDK | Available via Foundry SDK |
 |---|---|---|
-| **Chat Completions** | ✅ Yes | ✅ Yes (via `get_azure_openai_client()`) |
-| **Responses** | ✅ Yes | ✅ Yes (via `get_azure_openai_client()`) |
+| **Chat Completions** | ✅ Yes | ✅ Yes (via `get_openai_client()`) |
+| **Responses** | ✅ Yes | ✅ Yes (via `get_openai_client()`) |
 | **Embeddings** | ✅ Yes | ✅ Yes |
 | **Fine-tuning** | ✅ Yes | ✅ Yes |
-| **Agent Service** | ❌ No | ✅ Yes (via `project.agents`) |
+| **Agent Service** | ❌ No | ✅ Yes (conversations/responses in v2; classic `project.agents` in v1) |
 | **Evaluations** | ❌ No | ✅ Yes |
 | **Tracing** | ❌ No | ✅ Yes |
 
@@ -168,13 +181,14 @@ print(response.model_dump_json(indent=2))
 
 **Pair with Foundry SDK** when you want:
 - Agent Framework agents to run against Foundry models
-- Agent Framework to orchestrate agents hosted in Foundry
+- Agent Framework to orchestrate agents hosted in Foundry (deploy as hosted agents)
 
-**Note**: Agent Framework is **different** from Foundry Agent Service (which is a hosted platform for server-side orchestration).
+**Note**: Agent Framework is **different** from Foundry Agent Service (which is a hosted platform for server-side orchestration). However, Agent Framework agents can now be deployed as **hosted agents** in Foundry.
 
 ### Resources
 
 - [Microsoft Agent Framework Overview](https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview)
+- [Official Python agent SDK samples](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/ai/azure-ai-projects)
 
 ## Foundry Tools SDKs
 
@@ -272,7 +286,7 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 token_provider = get_bearer_token_provider(
     DefaultAzureCredential(),
-    "https://cognitiveservices.azure.com/.default"
+    "https://ai.azure.com/.default"
 )
 
 client = OpenAI(
@@ -280,6 +294,8 @@ client = OpenAI(
     api_key=token_provider
 )
 ```
+
+> **Scope note**: Newer official samples use `https://ai.azure.com/.default`. The legacy scope `https://cognitiveservices.azure.com/.default` still works.
 
 ## Relationship to API Surfaces
 
@@ -289,21 +305,22 @@ This table shows how SDKs map to the three main API surfaces covered in this rep
 |---|---|---|---|
 | **Chat Completions** | ✅ Yes | ✅ Yes | `client.chat.completions.create()` |
 | **Responses API** | ✅ Yes | ✅ Yes | `client.responses.create()` |
-| **Agent Service** | ❌ No | ✅ Yes | `project.agents.create_agent()`, `threads.create()`, etc. |
+| **Agent Service** | ❌ No | ✅ Yes | `project.get_openai_client()` → `conversations.create()`, `responses.create()` (v2); `project.agents.create_agent()`, `threads.create()` (v1 classic) |
 
 **Key Insight**:
 - **OpenAI SDK** → Chat Completions + Responses API (stateless/inference)
-- **Foundry SDK** → All three (Chat + Responses + Agent Service + Foundry-native features)
+- **Foundry SDK v2** → All three (Chat + Responses + Agent Service + Foundry-native features)
+- **Foundry SDK v1 classic** → All three via the older `project.agents` pattern
 
 ## Summary: When to Use Each SDK
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Azure AI Foundry SDK                     │
-│                   (azure-ai-projects)                       │
+│                   (azure-ai-projects v2)                    │
 │                                                             │
-│  ✅ Agent Service (threads, runs, messages)                 │
-│  ✅ Evaluations, tracing, fine-tuning                       │
+│  ✅ Agent Service (conversations, responses pattern)         │
+│  ✅ Evaluations, tracing, fine-tuning, memory stores         │
 │  ✅ Foundry direct models (via Responses API)               │
 │  ✅ Project-level operations                                │
 │                                                             │

@@ -1,5 +1,7 @@
 # Chat Completions vs Responses (Azure OpenAI v1)
 
+> **Last updated: 2026-03-22** — synced with [Responses API how-to](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?view=foundry) and [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry) docs.
+
 This page summarizes the practical differences between the **Chat Completions API** and the **Responses API** when using **Azure OpenAI v1** (`/openai/v1`) through Azure AI Foundry / Microsoft Foundry.
 
 > Source of truth for examples and auth patterns: the Azure OpenAI “supported languages” article (Python pivot).
@@ -16,9 +18,10 @@ If you are starting a new application today, prefer **Responses** unless you hav
 |---|---|---|
 | I need a simple chat interface and already have code using `messages[]` + `choices[]`. | Chat Completions | Lowest migration cost; simple mental model. |
 | I want the “forward path” API that gets new features first. | Responses | Microsoft docs position Responses as the API to use for latest features. |
-| I need tool-style integrations (example: MCP tools) in the OpenAI v1 style. | Responses | Supported languages doc includes Responses + MCP examples. |
-| I need a single API surface that spans “chat-like prompts” plus newer capabilities. | Responses | Described as a unified experience (chat + assistants-style capabilities). |
-
+| I need tool-style integrations (remote MCP tools). | Responses | Remote MCP server integration is GA on Responses. |
+| I need image generation or async background tasks. | Responses | Both are GA on the Responses API. |
+| I want multi-turn state without managing history myself. | Responses | Use `previous_response_id` to chain calls; server stores context for 30 days. |
+| I need a single API surface that spans “chat-like prompts” plus newer capabilities. | Responses | Described as a unified experience (chat + assistants-style capabilities). || I need the newest features (developer messages, history compaction, WebSocket realtime). | Responses | New capabilities land exclusively on Responses. |
 ## Conceptual differences
 
 ### 1) Request shape
@@ -52,8 +55,10 @@ If you are starting a new application today, prefer **Responses** unless you hav
 
 **Pros**
 - Unified API that combines chat-style prompting with newer capabilities.
-- Newer features show up here first (as indicated by Microsoft docs).
-- Supports tool integrations (example shown: MCP tools).
+- **Generally Available (GA)** — `/openai/v1/responses` is in the GA status table.
+- Newer features land here first: remote MCP tools, async background tasks, image generation, encrypted reasoning.
+- Server-side response storage: retrieve or delete past responses; chain calls with `previous_response_id` (30-day default retention).
+- Supports **multi-provider models** (Azure OpenAI, DeepSeek/MAI-DS-R1, Grok, Microsoft AI) deployed in Foundry.
 
 **Cons**
 - Response object is richer and can be more complex to parse if you want full fidelity.
@@ -103,11 +108,57 @@ chat = client.chat.completions.create(
 print(chat.choices[0].message.content)
 ```
 
+## New Responses API capabilities (GA as of Mar 2026)
+
+### Response chaining (`previous_response_id`)
+
+```python
+response = client.responses.create(
+    model="gpt-4o",
+    input="Define catastrophic forgetting."
+)
+
+# Continue conversation without re-sending history
+second_response = client.responses.create(
+    model="gpt-4o",
+    previous_response_id=response.id,
+    input=[{"role": "user", "content": "Explain that to a college freshman."}]
+)
+print(second_response.output_text)
+```
+
+### Retrieve and delete stored responses
+
+```python
+# Responses are stored server-side for 30 days by default
+stored = client.responses.retrieve("resp_67cb32528d6881909eb2859a55e18a85")
+
+# Explicitly delete a response
+client.responses.delete("resp_67cb32528d6881909eb2859a55e18a85")
+```
+
+### Developer messages
+
+The Responses API supports developer-role messages for providing system-level instructions inline with user input, giving more granular control over prompting.
+
+### Server-side history compaction
+
+The server can automatically compact long conversation histories, reducing token usage when chaining responses with `previous_response_id`.
+
+### WebSocket support (realtime conversation mode)
+
+WebSocket-based streaming is available for realtime conversational experiences with lower latency than standard HTTP streaming.
+
+### Background task improvements
+
+Background tasks support durable streams with disconnect/reconnect scenarios, useful for long-running tool calls (e.g., image generation).
+
 ## Notes that matter in practice
 
-- **Auth options**: both APIs support API keys and Microsoft Entra ID in the supported-languages doc.
+- **Auth options**: both APIs support API keys and Microsoft Entra ID. Newer official samples use the `https://ai.azure.com/.default` scope for Entra ID (the legacy `https://cognitiveservices.azure.com/.default` scope still works).
 - **Endpoint & versioning**: the v1 GA experience uses `/openai/v1` and does not require `api-version` in the request.
 - **Parsing**: Microsoft explicitly recommends being resilient to additional response fields and parsing only what you need.
+- **Multi-provider models**: both Chat Completions and Responses APIs work with non-Azure-OpenAI models deployed in Foundry (DeepSeek R1 as `MAI-DS-R1`, Grok, and other Microsoft AI models).
 
 ## Sources
 
