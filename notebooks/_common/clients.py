@@ -10,9 +10,11 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 from .env import Config
 
-# Foundry / Azure OpenAI Entra scope (May 2026 GA scope).
-# The legacy `cognitiveservices.azure.com/.default` scope still works as a fallback.
-ENTRA_SCOPE = "https://ai.azure.com/.default"
+# Two distinct Entra scopes — using the wrong one returns 401/404.
+#  - Azure OpenAI resource (the *.openai.azure.com host) → cognitiveservices scope
+#  - Foundry project (the *.services.ai.azure.com host)  → ai.azure.com scope
+OPENAI_SCOPE = "https://cognitiveservices.azure.com/.default"
+FOUNDRY_SCOPE = "https://ai.azure.com/.default"
 
 
 def get_credential() -> DefaultAzureCredential:
@@ -29,7 +31,7 @@ def get_openai_client(cfg: Config, *, credential: DefaultAzureCredential | None 
     from openai import AzureOpenAI
 
     cred = credential or get_credential()
-    token_provider = get_bearer_token_provider(cred, ENTRA_SCOPE)
+    token_provider = get_bearer_token_provider(cred, OPENAI_SCOPE)
 
     # Strip a trailing /openai/v1 if the user pasted the full v1 URL in .env — keep the helper forgiving.
     endpoint = cfg.azure_openai_endpoint.rstrip("/")
