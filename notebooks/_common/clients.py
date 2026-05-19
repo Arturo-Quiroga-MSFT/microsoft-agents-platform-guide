@@ -25,21 +25,23 @@ def get_credential() -> DefaultAzureCredential:
 def get_openai_client(cfg: Config, *, credential: DefaultAzureCredential | None = None):
     """Azure OpenAI client (openai SDK) bound to the resource's /openai/v1 surface.
 
-    The SDK appends the /openai/v1 route automatically — pass only the resource hostname.
-    Uses a bearer-token provider so tokens auto-refresh.
+    Uses `base_url` (not `azure_endpoint`) so the SDK targets the new v1 GA route
+    `/openai/v1/chat/completions?api-version=preview` and passes the deployment as `model`.
+    The legacy `/openai/deployments/{name}/...` path does not accept `api-version=preview`.
     """
     from openai import AzureOpenAI
 
     cred = credential or get_credential()
     token_provider = get_bearer_token_provider(cred, OPENAI_SCOPE)
 
-    # Strip a trailing /openai/v1 if the user pasted the full v1 URL in .env — keep the helper forgiving.
+    # Accept either the bare resource host or the full /openai/v1 URL in .env.
     endpoint = cfg.azure_openai_endpoint.rstrip("/")
-    if endpoint.endswith("/openai/v1"):
-        endpoint = endpoint[: -len("/openai/v1")]
+    if not endpoint.endswith("/openai/v1"):
+        endpoint = f"{endpoint}/openai/v1"
+    base_url = endpoint + "/"
 
     return AzureOpenAI(
-        azure_endpoint=endpoint,
+        base_url=base_url,
         azure_ad_token_provider=token_provider,
         api_version="preview",
     )
