@@ -81,6 +81,65 @@ Three API surfaces, one platform. Each serves a different complexity tier:
 > [!IMPORTANT]
 > **Where does Microsoft Agent 365 fit?** [Microsoft Agent 365](https://learn.microsoft.com/en-us/microsoft-agent-365/overview) (**GA May 1, 2026**) is the enterprise **control plane** that wraps every agent in your tenant — regardless of which framework or cloud built it. Its three pillars are **Observe** (centralized agent registry, Agent Map, real-time telemetry), **Govern** (lifecycle, access control, and compliance via Entra + Purview + the M365 admin center), and **Secure** (Entra-backed Agent Identity, Purview DLP, Defender threat protection). Use the [Agent 365 SDK](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/) and CLI to layer governed Work IQ tool access, notifications, Entra Agent Identity, and OpenTelemetry observability on agents built with MAF, Foundry Agent Service, Copilot Studio, OpenAI Agents SDK, LangChain — or even Google Vertex / AWS Bedrock. Agent 365 **does not host or build agents**; it makes them enterprise-ready.
 
+### Microsoft Agent 365 — what it adds to your agent
+
+The diagram below shows the full four-layer stack. Layers 1–3 are *your agent* (the model, the runtime, the orchestration code). **Layer 4 is Microsoft Agent 365** — the enterprise capabilities it injects regardless of how Layers 1–3 were built.
+
+```mermaid
+flowchart TB
+    subgraph L4["Layer 4 — Microsoft Agent 365 (Enterprise Control Plane, GA May 1 2026)"]
+        direction TB
+        subgraph PILLARS[" "]
+            direction LR
+            OBS["🔍 <b>Observe</b><br/>Agent registry · Agent Map<br/>OTel traces · usage analytics"]
+            GOV["⚖️ <b>Govern</b><br/>Entra blueprints · M365 admin<br/>Purview compliance · lifecycle"]
+            SEC["🛡️ <b>Secure</b><br/>Entra Agent Identity · Purview DLP<br/>Defender runtime protection"]
+        end
+        subgraph CAPS["What the Agent 365 SDK + CLI inject into your agent"]
+            direction LR
+            ID["Entra Agent Identity<br/>(mailbox, calendar, principal)"]
+            WIQ["Work IQ MCP tools<br/>(Mail · Calendar · SharePoint · Teams)"]
+            NOTIF["Notifications<br/>(Teams · Outlook · Word comments)"]
+            OTEL["OpenTelemetry<br/>(gen_ai.* spans, audit trails)"]
+            BP["IT-approved Blueprints<br/>(DLP · access · logging policy)"]
+        end
+    end
+
+    subgraph L3["Layer 3 — Orchestration framework (optional)"]
+        MAF3["Microsoft Agent Framework (MAF)<br/><i>or Copilot Studio · OpenAI Agents SDK · LangChain · …</i>"]
+    end
+
+    subgraph L2["Layer 2 — Hosted agent runtime (optional)"]
+        FAS["Foundry Agent Service<br/><i>or self-hosted on AKS · Functions · Container Apps · 3rd-party cloud</i>"]
+    end
+
+    subgraph L1["Layer 1 — Model APIs"]
+        CCAPI["Chat Completions"]
+        RAPI["Responses API"]
+    end
+
+    L4 -. "enhances" .-> L3
+    L3 --> L2
+    L2 --> L1
+
+    style L4 fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px,color:#1E1B4B
+    style PILLARS fill:#FFFFFF,stroke:#C7D2FE,stroke-dasharray: 4 2
+    style CAPS fill:#F5F3FF,stroke:#A5B4FC
+    style L3 fill:#D4EDDA,stroke:#28A745
+    style L2 fill:#D4EDDA,stroke:#28A745
+    style L1 fill:#E6F2FF,stroke:#0078D4
+    style OBS fill:#FFFFFF,stroke:#4F46E5
+    style GOV fill:#FFFFFF,stroke:#4F46E5
+    style SEC fill:#FFFFFF,stroke:#4F46E5
+    style ID fill:#FFFFFF,stroke:#A5B4FC
+    style WIQ fill:#FFFFFF,stroke:#A5B4FC
+    style NOTIF fill:#FFFFFF,stroke:#A5B4FC
+    style OTEL fill:#FFFFFF,stroke:#A5B4FC
+    style BP fill:#FFFFFF,stroke:#A5B4FC
+```
+
+> **Read it top-down:** Agent 365 (Layer 4) is *additive* — it doesn't replace anything below it. Pick any combination of Layers 1–3 (e.g., MAF + Foundry Hosted Agent + Responses, or Copilot Studio alone, or even a Bedrock agent), then opt into Agent 365 to make it enterprise-ready inside an M365 tenant.
+
 ## Which API should you use?
 
 ```mermaid
