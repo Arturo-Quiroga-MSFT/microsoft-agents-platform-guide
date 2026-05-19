@@ -24,20 +24,27 @@ Azure AI Foundry exposes multiple API surfaces for interacting with OpenAI model
 graph LR
     subgraph "Azure AI Foundry / Microsoft Foundry"
         direction TB
+        MAF["Microsoft Agent Framework (MAF)<br/><i>code-first orchestration</i>"]
         CC["Chat Completions API<br/><code>/openai/v1/chat/completions</code>"]
         RA["Responses API<br/><code>/openai/v1/responses</code>"]
         AS["Foundry Agent Service<br/><code>/agents  /conversations</code>"]
     end
 
-    DEV((You)) --> CC
+    DEV((You)) --> MAF
+    DEV --> CC
     DEV --> RA
     DEV --> AS
+
+    MAF -. "calls" .-> CC
+    MAF -. "calls" .-> RA
+    MAF -. "hosted as" .-> AS
 
     CC -- "Stateless, simple" --> MODEL["OpenAI Models"]
     RA -- "Stateful, modern features" --> MODEL
     AS -- "Orchestrated agents" --> MODEL
 
     style DEV fill:#0078D4,color:#fff,stroke:#005A9E
+    style MAF fill:#D4EDDA,stroke:#28A745
     style CC fill:#E6F2FF,stroke:#0078D4
     style RA fill:#E6F2FF,stroke:#0078D4
     style AS fill:#D4EDDA,stroke:#28A745
@@ -59,22 +66,28 @@ Three API surfaces, one platform. Each serves a different complexity tier:
 
 ```mermaid
 flowchart TD
-    START(["New project"]) --> Q1{"Need stateful agents<br/>with tool orchestration?"}
+    START(["New project"]) --> Q0{"Writing multi-agent<br/>orchestration in code?"}
+    Q0 -- Yes --> MAF["Use Microsoft Agent Framework (MAF)"]
+    Q0 -- No --> Q1{"Need stateful agents<br/>with tool orchestration?"}
     Q1 -- Yes --> AGENT["Use Foundry Agent Service"]
     Q1 -- No --> Q2{"Building a new app<br/>that needs latest features?"}
     Q2 -- Yes --> RESP["Use Responses API"]
     Q2 -- No --> CHAT["Use Chat Completions API"]
 
+    MAF --> SDK_M["SDK: <code>agent-framework</code><br/>(optionally deploy as Foundry Hosted Agent)"]
     AGENT --> SDK_A["SDK: <code>azure-ai-projects</code> v2"]
     RESP --> SDK_R["SDK: <code>openai</code>"]
     CHAT --> SDK_C["SDK: <code>openai</code>"]
 
     style START fill:#0078D4,color:#fff,stroke:#005A9E
+    style Q0 fill:#FFF3CD,stroke:#856404
     style Q1 fill:#FFF3CD,stroke:#856404
     style Q2 fill:#FFF3CD,stroke:#856404
+    style MAF fill:#D4EDDA,stroke:#28A745
     style AGENT fill:#D4EDDA,stroke:#28A745
     style RESP fill:#E6F2FF,stroke:#0078D4
     style CHAT fill:#E6F2FF,stroke:#0078D4
+    style SDK_M fill:#f8f8f8,stroke:#666
     style SDK_A fill:#f8f8f8,stroke:#666
     style SDK_R fill:#f8f8f8,stroke:#666
     style SDK_C fill:#f8f8f8,stroke:#666
@@ -128,6 +141,7 @@ graph TB
     style MAF fill:#D4EDDA,stroke:#28A745
     style PROJ fill:#FFF3CD,stroke:#856404
     style OAIEP fill:#FFF3CD,stroke:#856404
+    style HOST fill:#D4EDDA,stroke:#28A745
     style TOOLS fill:#f8f8f8,stroke:#666
 ```
 
