@@ -249,6 +249,61 @@ Provider clients also exist for Azure OpenAI Chat Completions / Responses, OpenA
 - Migration from Semantic Kernel: https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-semantic-kernel
 - Migration from AutoGen: https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen
 
+## Microsoft Agent 365 SDK (enterprise control plane)
+
+**[Microsoft Agent 365](https://learn.microsoft.com/en-us/microsoft-agent-365/overview)** reached **General Availability on May 1, 2026** as the enterprise *control plane* for agents — Observe, Govern, Secure. The **[Agent 365 SDK](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/)** and **Agent 365 CLI** let you layer enterprise-grade identity, observability, notifications, and governed access to Microsoft 365 data onto agents built with **any** framework: MAF, Foundry Agent Service, Microsoft 365 Agents SDK, Copilot Studio, OpenAI Agents SDK, Claude Code SDK, LangChain — even Google Vertex AI and AWS Bedrock agents.
+
+### Where Agent 365 sits relative to MAF and Foundry Agent Service
+
+| Layer | Concern | What you use |
+|---|---|---|
+| **Enterprise capabilities** | **Entra Agent Identity, OTel observability, governed Work IQ MCP tools, notifications (Teams / Outlook / Word), blueprint-based governance** | **Agent 365 SDK + CLI** |
+| Orchestration framework | Define agents in code, compose multi-agent workflows | Microsoft Agent Framework (MAF) |
+| Hosted runtime | Server-managed conversations, tool execution, identity | Foundry Agent Service |
+| Model API | Raw inference | OpenAI SDK → Chat Completions / Responses |
+
+Agent 365 **does not create or host agents** — it enhances agents you've already built, regardless of the underlying stack. With the SDK, agents can:
+
+- Use an **Entra-backed Agent Identity** with their own resources (e.g., a mailbox) for secure auth and controlled tool/data access.
+- Receive and respond to **notifications from Teams, Outlook, and Word** — participating like a human user in M365 apps.
+- Emit full **OpenTelemetry** traces for audited, traceable interactions, inference events, and tool usage.
+- Invoke **governed MCP servers** for Work IQ access to Mail, Calendar, SharePoint, Teams, etc., under admin control.
+- Run inside an **IT-approved blueprint** (from [Microsoft Entra agent blueprint](https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-blueprint)) so each instance inherits compliance, governance, and security policy automatically.
+
+### Agent 365 CLI — lifecycle automation
+
+The Agent 365 CLI is the command-line backbone for the full agent development lifecycle:
+
+- Create agent **blueprints** and supporting resources.
+- Manage out-of-box and custom **Work IQ tools**, permissions, and tooling.
+- **Deploy agent code to Azure**.
+- **Publish** agent application packages to the Microsoft admin center.
+- Clean up blueprints, identities, and CLI-created Azure resources.
+
+### Layered architecture (from the official docs)
+
+| Layer | Provided by |
+|---|---|
+| Enterprise capabilities (identity, notifications, observability, tooling) | **Agent 365 SDK** |
+| Agent logic (prompts, workflows, reasoning) | Your code |
+| LLM orchestrator runtime (model invocation, tool orchestration) | Agent SDK / framework of your choice (e.g., MAF) |
+
+### When to add Agent 365 to your stack
+
+| Choose | When |
+|---|---|
+| **MAF or Foundry Agent Service alone** | Single-developer prototypes, demos, isolated workloads, or scenarios with no M365 / enterprise-tenant integration needed. |
+| **+ Agent 365 SDK** | You're shipping agents into a Microsoft 365 tenant and need Entra Agent Identity, audited observability, governed MCP access to M365 data, or admin-approved blueprints. |
+| **+ Agent 365 CLI** | You want to automate blueprint creation, Work IQ tool wiring, Azure deployment, and admin-center publishing across environments / CI-CD. |
+
+### Resources
+
+- Overview: https://learn.microsoft.com/en-us/microsoft-agent-365/overview
+- Developer landing (SDK + CLI): https://learn.microsoft.com/en-us/microsoft-agent-365/developer/
+- Get started with Agent 365 development: https://learn.microsoft.com/en-us/microsoft-agent-365/developer/get-started
+- Entra agent blueprint: https://learn.microsoft.com/en-us/entra/agent-id/identity-platform/agent-blueprint
+- Pre-integrated ecosystem partner agents: https://learn.microsoft.com/en-us/microsoft-agent-365/third-party-agents
+
 ## Foundry Tools SDKs
 
 Foundry Tools (formerly Azure AI Services) are **prebuilt point solutions** with dedicated SDKs:

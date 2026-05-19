@@ -22,12 +22,15 @@ Azure AI Foundry exposes multiple API surfaces for interacting with OpenAI model
 
 ```mermaid
 graph LR
-    subgraph "Azure AI Foundry / Microsoft Foundry"
+    subgraph A365["Microsoft Agent 365 — Enterprise Control Plane (Observe • Govern • Secure)"]
         direction TB
-        MAF["Microsoft Agent Framework (MAF)<br/><i>code-first orchestration</i>"]
-        CC["Chat Completions API<br/><code>/openai/v1/chat/completions</code>"]
-        RA["Responses API<br/><code>/openai/v1/responses</code>"]
-        AS["Foundry Agent Service<br/><code>/agents  /conversations</code>"]
+        subgraph "Azure AI Foundry / Microsoft Foundry"
+            direction TB
+            MAF["Microsoft Agent Framework (MAF)<br/><i>code-first orchestration</i>"]
+            CC["Chat Completions API<br/><code>/openai/v1/chat/completions</code>"]
+            RA["Responses API<br/><code>/openai/v1/responses</code>"]
+            AS["Foundry Agent Service<br/><code>/agents  /conversations</code>"]
+        end
     end
 
     DEV((You)) --> MAF
@@ -44,6 +47,7 @@ graph LR
     AS -- "Orchestrated agents" --> MODEL
 
     style DEV fill:#0078D4,color:#fff,stroke:#005A9E
+    style A365 fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px,color:#1E1B4B
     style MAF fill:#D4EDDA,stroke:#28A745
     style CC fill:#E6F2FF,stroke:#0078D4
     style RA fill:#E6F2FF,stroke:#0078D4
@@ -61,6 +65,9 @@ Three API surfaces, one platform. Each serves a different complexity tier:
 
 > [!NOTE]
 > **Where does Microsoft Agent Framework (MAF) fit?** [MAF](https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-python) ([repo](https://github.com/microsoft/agent-framework)) is the **code-first orchestration SDK** (Python + .NET) that sits *above* these APIs. You write agents and graph-based multi-agent workflows in MAF; MAF calls Chat Completions / Responses under the hood and can deploy your agent as a **Foundry Hosted Agent** with ~2 extra lines of code. It is the direct successor to Semantic Kernel and AutoGen. See the [SDK Overview](docs/sdk-overview.md#microsoft-agent-framework-maf) for details.
+
+> [!IMPORTANT]
+> **Where does Microsoft Agent 365 fit?** [Microsoft Agent 365](https://learn.microsoft.com/en-us/microsoft-agent-365/overview) (**GA May 1, 2026**) is the enterprise **control plane** that wraps every agent in your tenant — regardless of which framework or cloud built it. Its three pillars are **Observe** (centralized agent registry, Agent Map, real-time telemetry), **Govern** (lifecycle, access control, and compliance via Entra + Purview + the M365 admin center), and **Secure** (Entra-backed Agent Identity, Purview DLP, Defender threat protection). Use the [Agent 365 SDK](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/) and CLI to layer governed Work IQ tool access, notifications, Entra Agent Identity, and OpenTelemetry observability on agents built with MAF, Foundry Agent Service, Copilot Studio, OpenAI Agents SDK, LangChain — or even Google Vertex / AWS Bedrock. Agent 365 **does not host or build agents**; it makes them enterprise-ready.
 
 ## Which API should you use?
 
@@ -151,7 +158,8 @@ graph TB
 ## Key dates and migration
 
 > [!IMPORTANT]
-> The classic Foundry Agent Service platform (threads/runs/messages pattern) retires **March 31, 2026**. Migrate to the new conversations/responses pattern before that date. See the [migration section](docs/agents-and-apis.md#migration-from-classic-to-new) in the agent guide.
+> - **March 31, 2026** — Classic Foundry Agent Service (threads/runs/messages pattern) was retired. New code must use the conversations/responses pattern. See the [migration section](docs/agents-and-apis.md#migration-from-classic-to-new) in the agent guide.
+> - **May 1, 2026** — **Microsoft Agent 365 reached General Availability** for the Commercial segment (per-user licensing). Recommended companion products: Entra P1/P2 or Entra Suite, plus Purview DLP, to take full advantage of governance and protection. See the [Agent 365 overview](https://learn.microsoft.com/en-us/microsoft-agent-365/overview).
 
 ## Primary sources
 
@@ -160,6 +168,8 @@ graph TB
 * [Foundry Agent Service overview](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/overview)
 * [Agent Service migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate)
 * [Responses API how-to](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?view=foundry)
+* [Microsoft Agent 365 overview](https://learn.microsoft.com/en-us/microsoft-agent-365/overview)
+* [Microsoft Agent 365 SDK and CLI (developer landing)](https://learn.microsoft.com/en-us/microsoft-agent-365/developer/)
 
 ## Contributing
 
