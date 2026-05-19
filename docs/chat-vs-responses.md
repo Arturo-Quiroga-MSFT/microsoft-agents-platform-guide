@@ -1,6 +1,6 @@
 # Chat Completions vs Responses (Azure OpenAI v1)
 
-> **Last updated: 2026-03-22** — synced with [Responses API how-to](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?view=foundry) and [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry) docs.
+> **Last updated: 2026-05-19** — synced with [Responses API how-to](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/responses?view=foundry) and [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry) docs.
 
 This page summarizes the practical differences between the **Chat Completions API** and the **Responses API** when using **Azure OpenAI v1** (`/openai/v1`) through Azure AI Foundry / Microsoft Foundry.
 
@@ -108,7 +108,7 @@ chat = client.chat.completions.create(
 print(chat.choices[0].message.content)
 ```
 
-## New Responses API capabilities (GA as of Mar 2026)
+## New Responses API capabilities (May 2026)
 
 ### Response chaining (`previous_response_id`)
 
@@ -137,22 +137,71 @@ stored = client.responses.retrieve("resp_67cb32528d6881909eb2859a55e18a85")
 client.responses.delete("resp_67cb32528d6881909eb2859a55e18a85")
 ```
 
+### History compaction (client-side or server-side)
+
+Shrink the context window while preserving essential reasoning, messages, and tool calls.
+
+```python
+# Explicit compaction of a prior response
+compacted = client.responses.compact(
+    model="gpt-4.1",
+    previous_response_id=prior.id,
+)
+
+# Or enable automatic server-side compaction during a long task
+response = client.responses.create(
+    model="gpt-5.3-codex",
+    input=conversation,
+    store=False,
+    context_management=[{"type": "compaction", "compact_threshold": 200000}],
+)
+```
+
+When the output crosses `compact_threshold`, the service emits an opaque compaction item that carries forward state in subsequent turns.
+
+### Code Interpreter tool
+
+Run sandboxed Python inside a Response, including file generation and image transformations (useful for visual reasoning with `o3` / `o4-mini`).
+
+```python
+response = client.responses.create(
+    model="gpt-4.1",
+    tools=[{"type": "code_interpreter", "container": {"type": "auto"}}],
+    instructions="You are a personal math tutor. Use the python tool to answer.",
+    input="I need to solve 3x + 11 = 14. Can you help me?",
+)
+```
+
+Containers cost extra; idle timeout is 20 minutes, max session 1 hour.
+
+### File input (PDFs)
+
+PDFs can be supplied as Base64 (`input_file` with `file_data`) or via `file_id` after uploading with `purpose="assistants"` (the temporary workaround — `user_data` purpose is not yet supported on input PDFs).
+
+### Remote MCP servers + approvals
+
+The `mcp` tool type accepts custom auth headers and emits an `mcp_approval_request` item before sharing data. Respond with an `mcp_approval_response` (using `previous_response_id`) to authorize the call. Requires TLS 1.2+; mTLS and Azure service tags are not supported.
+
+### Background tasks (durable, cancellable, resumable)
+
+```python
+response = client.responses.create(
+    model="o3",
+    input="Write me a very long story",
+    background=True,   # requires store=True
+    stream=True,       # optional; needed to resume a dropped stream
+)
+```
+
+Poll with `client.responses.retrieve(id)`, cancel with `client.responses.cancel(id)`, and resume streaming via `?stream=true&starting_after=<sequence_number>`.
+
+### Image generation (preview)
+
+Responses API now exposes a built-in `image_generation` tool backed by the `gpt-image-1` family. Send the `x-ms-oai-image-generation-deployment` header and use any vision-capable orchestrator model (gpt-4o, gpt-4.1, o3, gpt-5/5.1).
+
 ### Developer messages
 
-The Responses API supports developer-role messages for providing system-level instructions inline with user input, giving more granular control over prompting.
-
-### Server-side history compaction
-
-The server can automatically compact long conversation histories, reducing token usage when chaining responses with `previous_response_id`.
-
-### WebSocket support (realtime conversation mode)
-
-WebSocket-based streaming is available for realtime conversational experiences with lower latency than standard HTTP streaming.
-
-### Background task improvements
-
-Background tasks support durable streams with disconnect/reconnect scenarios, useful for long-running tool calls (e.g., image generation).
-
+Developer-role messages can be sent inline with user input for more granular prompting control.
 ## Notes that matter in practice
 
 - **Auth options**: both APIs support API keys and Microsoft Entra ID. Newer official samples use the `https://ai.azure.com/.default` scope for Entra ID (the legacy `https://cognitiveservices.azure.com/.default` scope still works).

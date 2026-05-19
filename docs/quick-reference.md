@@ -1,6 +1,6 @@
 # Azure OpenAI API Quick Reference (2026)
 
-> **Last updated: 2026-03-22** — synced with [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry), [supported languages](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages?view=foundry&pivots=programming-language-python), and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
+> **Last updated: 2026-05-19** — synced with [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry), [supported languages](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages?view=foundry&pivots=programming-language-python), and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
 
 A concise comparison of the main API surfaces for Azure OpenAI usage in Microsoft Foundry.
 
@@ -57,41 +57,42 @@ response = client.responses.create(
 print(response.output_text)
 ```
 
-### Foundry Agent Service (stateful agents)
+### Foundry Agent Service (stateful agents, SDK 2.x)
 
 ```python
+import os
 from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import PromptAgentDefinition
 from azure.identity import DefaultAzureCredential
 
-project_client = AIProjectClient(
+# Format: https://<resource-name>.ai.azure.com/api/projects/<project-name>
+project = AIProjectClient(
     endpoint=os.environ["PROJECT_ENDPOINT"],
     credential=DefaultAzureCredential(),
 )
 
-with project_client:
-    agents_client = project_client.agents
-    
-    agent = agents_client.create_agent(
-        model="gpt-4o",
-        name="my-agent",
-        instructions="You are helpful",
-    )
-    
-    thread = agents_client.threads.create()
-    
-    agents_client.messages.create(
-        thread_id=thread.id,
-        role="user",
-        content="Hello!",
-    )
-    
-    run = agents_client.runs.create_and_process(
-        thread_id=thread.id,
-        agent_id=agent.id,
-    )
-    
-    messages = agents_client.messages.list(thread_id=thread.id)
+# 1. Create a versioned prompt agent
+agent = project.agents.create_version(
+    agent_name="my-agent",
+    definition=PromptAgentDefinition(
+        model="gpt-5-mini",  # any Foundry direct model
+        instructions="You are a helpful assistant.",
+    ),
+)
+
+# 2. Chat with the agent via the OpenAI client + Responses API
+openai = project.get_openai_client()
+conversation = openai.conversations.create()
+
+response = openai.responses.create(
+    conversation=conversation.id,
+    extra_body={"agent_reference": {"name": "my-agent", "type": "agent_reference"}},
+    input="Hello!",
+)
+print(response.output_text)
 ```
+
+> Requires **`azure-ai-projects` 2.x** (incompatible with 1.x). The legacy `agents_client.threads / runs / messages` pattern is still callable for backward compat but receives no new features.
 
 ## Environment Setup
 
@@ -122,8 +123,9 @@ client = OpenAI(
 ### For Foundry Agent Service
 
 ```bash
-export PROJECT_ENDPOINT="https://YOUR-PROJECT.api.azureml.ms"
-export MODEL_DEPLOYMENT_NAME="gpt-4o"
+# New Foundry project endpoint format (SDK 2.x):
+export PROJECT_ENDPOINT="https://YOUR-RESOURCE.ai.azure.com/api/projects/YOUR-PROJECT"
+export MODEL_DEPLOYMENT_NAME="gpt-5-mini"
 ```
 
 Use Microsoft Entra ID (API keys not recommended):
@@ -151,10 +153,14 @@ project_client = AIProjectClient(
 | **Enterprise RBAC** | ✅ | ✅ | ✅ (built-in) |
 | **Observability** | Basic | Basic | Full (traces, logs, App Insights) |
 | **Reasoning options** | ✅ | ✅ | ✅ |
-| **Image generation** | ❌ | ✅ (GA) | ✅ |
+| **Image generation** | ❌ | ✅ (Preview tool; `gpt-image-1` family) | ✅ (Preview) |
+| **Code Interpreter tool** | ❌ | ✅ (Preview) | ✅ (GA) |
+| **File / PDF input** | ❌ | ✅ | ✅ |
 | **Response chaining** | ❌ | ✅ (`previous_response_id`) | N/A |
+| **Server-side compaction** | ❌ | ✅ (`/responses/compact`, `context_management`) | N/A |
 | **Server-side retrieve/delete** | ❌ | ✅ (30-day retention) | N/A |
-| **Async background tasks** | ❌ | ✅ | N/A |
+| **Async background tasks** | ❌ | ✅ (cancel + resumable streaming) | N/A |
+| **MCP approvals workflow** | ❌ | ✅ (`mcp_approval_request` / `_response`) | ✅ |
 | **Multi-provider models** (DeepSeek, Grok) | ✅ | ✅ | ✅ |
 
 ## API Version Notes

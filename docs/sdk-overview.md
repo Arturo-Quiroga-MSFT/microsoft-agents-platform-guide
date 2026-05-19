@@ -1,6 +1,6 @@
 # Azure AI Foundry SDK Landscape
 
-> **Last updated: 2026-03-22** — synced with [supported languages](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages?view=foundry&pivots=programming-language-python), [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry), and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
+> **Last updated: 2026-05-19** — synced with [supported languages](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/supported-languages?view=foundry&pivots=programming-language-python), [API version lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle?view=foundry), and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
 
 This guide explains the **SDK ecosystem** for Azure AI Foundry and how each SDK relates to the APIs (Chat Completions, Responses, Agent Service) documented in this repo.
 

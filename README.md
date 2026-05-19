@@ -2,7 +2,7 @@
 title: Azure OpenAI API Guide (2026)
 description: A practical guide to Azure OpenAI API surfaces, SDKs, and the Foundry Agent Service for developers building on Microsoft Foundry.
 author: Arturo-Quiroga-MSFT
-ms.date: 2026-03-22
+ms.date: 2026-05-19
 ms.topic: overview
 keywords:
   - azure openai
@@ -14,7 +14,7 @@ keywords:
 
 # Azure OpenAI API Guide (2026)
 
-> **Last updated: 2026-03-22** — all docs synced against official Microsoft Learn sources.
+> **Last updated: 2026-05-19** — all docs synced against official Microsoft Learn sources.
 
 Azure AI Foundry exposes multiple API surfaces for interacting with OpenAI models. Choosing the right one depends on your use case: a stateless chat, a feature-rich conversation, or a fully orchestrated agent. This repo breaks down the options, compares them side by side, and provides the code patterns you need to get started.
 

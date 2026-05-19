@@ -1,6 +1,6 @@
 # Microsoft Foundry Agent Service: Which API to Use?
 
-> **Last updated: 2026-03-22** — synced with [Foundry Agent Service overview](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/overview) and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
+> **Last updated: 2026-05-19** — synced with [Foundry Agent Service overview](https://learn.microsoft.com/en-us/azure/ai-foundry/agents/overview) and [migration guide](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/migrate) docs.
 
 This guide clarifies which Azure OpenAI API surfaces (Chat Completions, Responses, or Assistants) you should use when working with **Microsoft Foundry Agent Service**.
 
@@ -8,8 +8,9 @@ This guide clarifies which Azure OpenAI API surfaces (Chat Completions, Response
 
 **Microsoft Foundry Agent Service has a new developer experience** that replaces the classic threads/runs/messages pattern with a conversations/responses pattern built on the OpenAI Responses protocol.
 
-- **New Agent Service SDK**: `azure-ai-projects` v2 (Python) — uses `project.get_openai_client()` for conversations and responses; agent creation/versioning stays on the project client.
-- **Classic pattern** (`azure-ai-agents` with `threads.create()`, `runs.create()`): still supported for compatibility but no new features.
+- **New Agent Service SDK**: `azure-ai-projects` **2.x** (Python) — uses `project.get_openai_client()` for conversations and responses; agent creation/versioning stays on the project client (`project.agents.create_version()` with a `PromptAgentDefinition`). **Incompatible with 1.x**.
+- **Three agent types**: **Prompt agents** (GA, no-code or via SDK/REST), **Workflow agents** (preview, YAML or visual builder for multi-step orchestration), **Hosted agents** (preview, your code in a container built with Agent Framework or LangGraph).
+- **Classic pattern** (`azure-ai-agents` / Projects 1.x with `threads.create()`, `runs.create()`): kept available under Foundry Classic but receives no new features.
 - **Not for direct use with agents**: Chat Completions API or Responses API are not called directly when using Agent Service (Agent Service wraps Responses internally).
 
 - **Key Takeaway**: Microsoft Foundry Agent Service is a separate orchestration platform. The new API uses conversations and responses (OpenAI Responses protocol) for server-side agent orchestration, storing state in single-tenant Cosmos DB. This is distinct from the stateless Chat Completions API and unified Responses API, which are for direct model interaction.
@@ -39,33 +40,42 @@ The new developer experience uses the OpenAI client (obtained from the project c
 ```python
 import os
 from azure.ai.projects import AIProjectClient
+from azure.ai.projects.models import PromptAgentDefinition
 from azure.identity import DefaultAzureCredential
 
+# Format: https://<resource-name>.ai.azure.com/api/projects/<project-name>
 project = AIProjectClient(
     endpoint=os.environ["PROJECT_ENDPOINT"],
     credential=DefaultAzureCredential(),
 )
 
-# Agent creation uses the project client
+# 1. Create a versioned prompt agent
 agent = project.agents.create_version(
     agent_name="my-agent",
-    agent=PromptAgentDefinition(
-        model="gpt-4o",
-        instructions="You are a helpful assistant",
+    definition=PromptAgentDefinition(
+        model="gpt-5-mini",
+        instructions="You are a helpful assistant.",
     ),
 )
+print(f"Agent created (id={agent.id}, version={agent.version})")
 
-# Conversations and responses use the OpenAI client
-openai_client = project.get_openai_client()
+# 2. Chat with the agent via the OpenAI client + Responses API
+openai = project.get_openai_client()
+conversation = openai.conversations.create()
 
-conversation = openai_client.conversations.create()
-
-response = openai_client.responses.create(
-    model="gpt-4o",
-    input=[{"role": "user", "content": "Hello, tell me a joke"}],
-    conversation_id=conversation.id,
+response = openai.responses.create(
+    conversation=conversation.id,
+    extra_body={"agent_reference": {"name": "my-agent", "type": "agent_reference"}},
+    input="What is the size of France in square miles?",
 )
+print(response.output_text)
 
+# Follow-up in the same conversation
+response = openai.responses.create(
+    conversation=conversation.id,
+    extra_body={"agent_reference": {"name": "my-agent", "type": "agent_reference"}},
+    input="And what is the capital city?",
+)
 print(response.output_text)
 ```
 
@@ -192,14 +202,20 @@ The new Agent Service maintains **backward compatibility** with the threads/runs
 
 ## Hosted Agents
 
-**Hosted agents** are a new concept in Foundry Agent Service. You can deploy Agent Framework or LangGraph agents as containers to Foundry with full conversation management:
+**Hosted agents (preview)** are code-based agents built with a framework of your choice (Agent Framework, LangGraph, or your own code) and deployed as containers to Foundry Agent Service. You own the orchestration logic; Foundry manages the runtime, scaling, identity, and infrastructure.
 
-- Foundry creates durable conversation objects with unique identifiers
-- State management is automatic (previous messages, tool calls, outputs, metadata)
-- Conversations persist across sessions for cross-session continuity
-- Lifecycle and cleanup follow your project's retention policies
+Key capabilities:
 
-See the [hosted agents quickstart](https://learn.microsoft.com/en-us/azure/foundry/agents/quickstarts/quickstart-hosted-agent).
+- **Durable conversations** — Foundry creates conversation objects with unique IDs; previous messages, tool calls, outputs, and metadata persist across sessions.
+- **Dedicated agent identity** — each agent can have its own Microsoft Entra identity for scoped resource access; supports OAuth On-Behalf-Of (OBO) passthrough to downstream APIs and MCP servers.
+- **BYO VNet** — each session runs in a VM-isolated sandbox connected to your Azure Virtual Network.
+- **Built-in lifecycle** — build/push to ACR, register an agent version, poll until `active`, then invoke the dedicated endpoint.
+
+Deploy via the Azure Developer CLI (`azd`) or VS Code extension for the fastest path, or via the Python SDK / REST API for programmatic control. See the [hosted agents quickstart](https://learn.microsoft.com/en-us/azure/foundry/agents/quickstarts/quickstart-hosted-agent) and [deploy a hosted agent](https://learn.microsoft.com/en-us/azure/foundry/agents/how-to/deploy-hosted-agent).
+
+## Toolbox (preview)
+
+**Toolbox** lets you define a curated set of tools once, manage them centrally in Foundry, and expose them through a single MCP-compatible endpoint. Any MCP-compatible agent runtime or client can consume a toolbox, regardless of framework. Toolbox versioning gives you explicit control over when changes propagate: create a new version, test it, then promote it to default.
 
 ## Agent Applications (Publishing)
 
@@ -249,16 +265,14 @@ project = AIProjectClient(
     credential=DefaultAzureCredential(),
 )
 
-openai_client = project.get_openai_client()
+openai = project.get_openai_client()
+conversation = openai.conversations.create()
 
-conversation = openai_client.conversations.create()
-
-response = openai_client.responses.create(
-    model="gpt-4o",
-    input=[{"role": "user", "content": "Hello!"}],
-    conversation_id=conversation.id,
+response = openai.responses.create(
+    conversation=conversation.id,
+    extra_body={"agent_reference": {"name": "my-agent", "type": "agent_reference"}},
+    input="Hello!",
 )
-
 print(response.output_text)
 ```
 
