@@ -202,7 +202,10 @@ The new Agent Service maintains **backward compatibility** with the threads/runs
 
 ## Hosted Agents
 
-**Hosted agents (preview)** are code-based agents built with a framework of your choice (Agent Framework, LangGraph, or your own code) and deployed as containers to Foundry Agent Service. You own the orchestration logic; Foundry manages the runtime, scaling, identity, and infrastructure.
+**Hosted agents (preview)** are code-based agents built with a framework of your choice (**[Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-python)**, LangGraph, or your own code) and deployed as containers to Foundry Agent Service. You own the orchestration logic; Foundry manages the runtime, scaling, identity, and infrastructure.
+
+> [!TIP]
+> **MAF is the recommended path** for code-first agents on Foundry. Any `Agent` or `Workflow` you build with `agent-framework` (Python) or `Microsoft.Agents.AI` (.NET) can be promoted to a Foundry Hosted Agent with ~2 extra lines of hosting code. See the [MAF section in the SDK Overview](sdk-overview.md#microsoft-agent-framework-maf) and the [foundry-hosted-agents samples](https://github.com/microsoft/agent-framework/tree/main/python/samples/04-hosting/foundry-hosted-agents).
 
 Key capabilities:
 

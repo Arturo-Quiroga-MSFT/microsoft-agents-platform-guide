@@ -11,15 +11,19 @@ A concise comparison of the main API surfaces for Azure OpenAI usage in Microsof
 | **Chat Completions** | `/openai/v1/chat/completions` | Lightweight stateless chat | Client-managed | `openai` (Python) |
 | **Responses** | `/openai/v1/responses` | Modern unified chat + features | Optional server-side | `openai` (Python) |
 | **Foundry Agent Service** | `/agents/...`, `/conversations/...` | Production agents with orchestration | Server-managed (Cosmos DB) | `azure-ai-projects` v2 (via `AIProjectClient`) |
+| **Microsoft Agent Framework (MAF)** | Uses any of the above under the hood | Code-first multi-agent workflows; provider-portable | Session-based, optional checkpointing | `agent-framework` (Python), `Microsoft.Agents.AI` (.NET) |
 
 ## Decision Tree
 
 ```
-Do you need stateful agents with tool orchestration and enterprise governance?
-├─ YES → Use Foundry Agent Service
-└─ NO → Are you building a new app that needs the latest features?
-    ├─ YES → Use Responses API
-    └─ NO → Use Chat Completions API (simple and familiar)
+Are you writing multi-agent orchestration / workflow logic in code?
+├─ YES → Use Microsoft Agent Framework (MAF)
+│         └─ Optionally deploy as a Foundry Hosted Agent
+└─ NO  → Do you need stateful agents with tool orchestration and enterprise governance?
+          ├─ YES → Use Foundry Agent Service (Prompt or Workflow agent)
+          └─ NO  → Are you building a new app that needs the latest features?
+              ├─ YES → Use Responses API
+              └─ NO  → Use Chat Completions API (simple and familiar)
 ```
 
 ## Code Patterns at a Glance

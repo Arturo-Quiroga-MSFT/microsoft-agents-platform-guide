@@ -52,6 +52,9 @@ Three API surfaces, one platform. Each serves a different complexity tier:
 | **Responses**            | Optional server  | New apps, latest features, multi-turn state |
 | **Foundry Agent Service** | Server-managed  | Production agents with tool orchestration   |
 
+> [!NOTE]
+> **Where does Microsoft Agent Framework (MAF) fit?** [MAF](https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-python) ([repo](https://github.com/microsoft/agent-framework)) is the **code-first orchestration SDK** (Python + .NET) that sits *above* these APIs. You write agents and graph-based multi-agent workflows in MAF; MAF calls Chat Completions / Responses under the hood and can deploy your agent as a **Foundry Hosted Agent** with ~2 extra lines of code. It is the direct successor to Semantic Kernel and AutoGen. See the [SDK Overview](docs/sdk-overview.md#microsoft-agent-framework-maf) for details.
+
 ## Which API should you use?
 
 ```mermaid
@@ -99,13 +102,14 @@ graph TB
     subgraph "SDKs"
         AIP["azure-ai-projects v2<br/><i>Foundry SDK</i>"]
         OAI["openai<br/><i>OpenAI SDK</i>"]
-        MAF["Microsoft Agent Framework<br/><i>Multi-agent orchestration</i>"]
+        MAF["agent-framework<br/><i>MAF — multi-agent orchestration</i>"]
     end
 
     subgraph "Azure AI Foundry"
         PROJ["Project Endpoint"]
         OAIEP["OpenAI v1 Endpoint"]
         TOOLS["Foundry Tools<br/>(Vision, Speech, Safety, etc.)"]
+        HOST["Foundry Hosted Agents<br/>(container runtime)"]
     end
 
     APP --> AIP
@@ -115,6 +119,7 @@ graph TB
     AIP --> PROJ
     OAI --> OAIEP
     MAF --> PROJ
+    MAF -. "deploy as" .-> HOST
     AIP -.-> TOOLS
 
     style APP fill:#0078D4,color:#fff,stroke:#005A9E

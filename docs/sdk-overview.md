@@ -169,26 +169,85 @@ print(response.model_dump_json(indent=2))
 | **Evaluations** | ❌ No | ✅ Yes |
 | **Tracing** | ❌ No | ✅ Yes |
 
-## Agent Framework (Multi-Agent Orchestration)
+## Microsoft Agent Framework (MAF)
 
-**Microsoft Agent Framework** is an open-source SDK for building multi-agent systems in code (.NET, Python) with a **cloud-provider-agnostic** interface.
+**[Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-python)** ([microsoft/agent-framework](https://github.com/microsoft/agent-framework)) is the open-source, production-grade SDK for building and orchestrating AI agents and multi-agent workflows in **Python** and **.NET**. It is the direct successor to **Semantic Kernel** and **AutoGen** — built by the same teams — unifying AutoGen's simple agent abstractions with Semantic Kernel's enterprise features (sessions, middleware, telemetry, type safety) and adding **graph-based workflows** for explicit multi-agent control.
 
-### When to Use
+### Where MAF fits relative to Azure OpenAI APIs and Foundry Agent Service
 
-- ✅ Define and orchestrate agents **locally** (in your code)
-- ✅ Multi-agent coordination with complex workflows
-- ✅ Cloud-agnostic design (not tied to Azure)
+| Layer | Concern | What you use |
+|---|---|---|
+| Model API | Raw inference (text, tools, structured output) | OpenAI SDK → Chat Completions / Responses |
+| Hosted runtime | Server-managed conversations, tool execution, identity | Foundry SDK → Foundry Agent Service |
+| **Orchestration framework** | **Define agents in code, compose multi-agent workflows, run locally or hosted** | **Microsoft Agent Framework** |
 
-**Pair with Foundry SDK** when you want:
-- Agent Framework agents to run against Foundry models
-- Agent Framework to orchestrate agents hosted in Foundry (deploy as hosted agents)
+MAF is **not** a replacement for the Responses API or Foundry Agent Service — it sits **above** them. An MAF agent is a thin abstraction that delegates inference to a `ChatClient` (Azure OpenAI, Foundry, OpenAI, Anthropic, Ollama, …) and adds session state, tools, middleware, observability, and workflow orchestration.
 
-**Note**: Agent Framework is **different** from Foundry Agent Service (which is a hosted platform for server-side orchestration). However, Agent Framework agents can now be deployed as **hosted agents** in Foundry.
+### Installation
+
+```bash
+pip install agent-framework        # meta-package, all sub-packages
+# or just the pieces you need:
+pip install agent-framework-core   # core + Azure OpenAI + OpenAI clients
+pip install agent-framework-azure-ai           # Azure AI Foundry integration
+pip install agent-framework-orchestrations    # Sequential, Concurrent, Handoff, GroupChat, Magentic
+```
+
+.NET equivalents are published as `Microsoft.Agents.AI`, `Microsoft.Agents.AI.Foundry`, `Microsoft.Agents.AI.Workflows`, etc.
+
+### Quickstart — Foundry-backed agent (Python)
+
+```python
+import asyncio
+from agent_framework import Agent
+from agent_framework.foundry import FoundryChatClient
+from azure.identity import AzureCliCredential
+
+async def main():
+    agent = Agent(
+        client=FoundryChatClient(
+            credential=AzureCliCredential(),
+            project_endpoint="https://<resource>.services.ai.azure.com/api/projects/<project>",
+            model="gpt-5.1-mini",
+        ),
+        name="HaikuAgent",
+        instructions="You are an upbeat assistant that writes beautifully.",
+    )
+    print(await agent.run("Write a haiku about Microsoft Agent Framework."))
+
+asyncio.run(main())
+```
+
+Provider clients also exist for Azure OpenAI Chat Completions / Responses, OpenAI, Anthropic, Ollama, and others — swap the `client=` and the rest of your code is unchanged.
+
+### Key capabilities
+
+- **Agents** — LLM + tools + MCP servers + session state, with a consistent API across providers.
+- **Workflows** — graph-based orchestration with **sequential**, **concurrent**, **handoff**, and **group-chat / Magentic** patterns; supports checkpointing, streaming, human-in-the-loop, and time-travel.
+- **Foundry Hosted Agents** — deploy any MAF agent as a Foundry Hosted Agent with ~2 extra lines of code. See `python/samples/04-hosting/foundry-hosted-agents` in the upstream repo.
+- **Middleware** — intercept agent runs for logging, guardrails, retry, caching, RAG injection, etc.
+- **Declarative agents** — define agents in YAML for faster setup and versioning.
+- **Observability** — OpenTelemetry built in (`gen_ai.*` conventions) for distributed tracing through Application Insights, Aspire, or any OTLP backend.
+- **DevUI** — interactive local UI for developing, testing, and debugging agents and workflows.
+- **Migration paths** — dedicated guides for moving from [Semantic Kernel](https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-semantic-kernel) and [AutoGen](https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen).
+
+### MAF vs Foundry Agent Service — when to use which
+
+| Choose | When |
+|---|---|
+| **Foundry Agent Service alone** (Prompt or Workflow agent) | You want a server-managed agent, prefer no-code / low-code authoring, are happy with the built-in tools (file search, code interpreter, MCP, Bing, etc.), and don't need custom orchestration logic. |
+| **MAF, running locally / self-hosted** | You need fine-grained orchestration (multi-agent workflows, custom middleware, durable checkpointing) and want to deploy to your own infra (Azure Functions, Container Apps, AKS, on-prem). |
+| **MAF → Foundry Hosted Agent** | You author the agent / workflow in MAF and want Foundry to host it: managed conversations, dedicated agent identity, BYO VNet, and a Responses-compatible endpoint. This is the recommended path for production code-first agents. |
+| **MAF + multiple providers** | You want provider portability (Azure OpenAI today, OpenAI / Anthropic / Ollama tomorrow) without rewriting orchestration. |
 
 ### Resources
 
-- [Microsoft Agent Framework Overview](https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview)
-- [Official Python agent SDK samples](https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/ai/azure-ai-projects)
+- Overview (Python pivot): https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-python
+- GitHub: https://github.com/microsoft/agent-framework
+- Python samples: https://github.com/microsoft/agent-framework/tree/main/python/samples
+- Foundry Hosted Agents samples: https://github.com/microsoft/agent-framework/tree/main/python/samples/04-hosting/foundry-hosted-agents
+- Migration from Semantic Kernel: https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-semantic-kernel
+- Migration from AutoGen: https://learn.microsoft.com/en-us/agent-framework/migration-guide/from-autogen
 
 ## Foundry Tools SDKs
 
@@ -358,8 +417,13 @@ This table shows how SDKs map to the three main API surfaces covered in this rep
 │         (Cloud-agnostic multi-agent orchestration)          │
 │                                                             │
 │  ✅ Define agents in code (.NET, Python)                    │
-│  ✅ Multi-agent coordination                                │
-│  🔗 Can integrate with Foundry SDK for hosted models        │
+│  ✅ Multi-agent workflows (sequential, concurrent,           │
+│     handoff, group-chat / Magentic, with checkpointing)     │
+│  ✅ Provider-agnostic (Foundry, Azure OpenAI, OpenAI,        │
+│     Anthropic, Ollama, ...)                                 │
+│  ✅ Deploy as Foundry Hosted Agent in ~2 extra lines         │
+│  ✅ Built-in OpenTelemetry, middleware, DevUI                │
+│  📦 pip install agent-framework                              │
 └─────────────────────────────────────────────────────────────┘
 ```
 
