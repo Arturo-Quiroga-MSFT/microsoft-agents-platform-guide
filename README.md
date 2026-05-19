@@ -1,22 +1,34 @@
 ---
-title: Azure OpenAI API Guide (2026)
-description: A practical guide to Azure OpenAI API surfaces, SDKs, and the Foundry Agent Service for developers building on Microsoft Foundry.
+title: Microsoft AI Agents Platform Guide (2026)
+description: A developer's map of the Microsoft AI agents stack in 2026 — Azure OpenAI APIs (Chat Completions, Responses), Foundry Agent Service, Microsoft Agent Framework (MAF), and Microsoft Agent 365 governance.
 author: Arturo-Quiroga-MSFT
 ms.date: 2026-05-19
 ms.topic: overview
 keywords:
+  - microsoft ai agents
+  - azure ai foundry
   - azure openai
   - responses api
   - chat completions
   - foundry agent service
-  - azure ai foundry
+  - microsoft agent framework
+  - microsoft agent 365
 ---
 
-# Azure OpenAI API Guide (2026)
+# Microsoft AI Agents Platform Guide (2026)
 
+> **Covers:** `Chat Completions` · `Responses` · `Foundry Agent Service` · `Microsoft Agent Framework (MAF)` · `Microsoft Agent 365`
+>
 > **Last updated: 2026-05-19** — all docs synced against official Microsoft Learn sources.
 
-Azure AI Foundry exposes multiple API surfaces for interacting with OpenAI models. Choosing the right one depends on your use case: a stateless chat, a feature-rich conversation, or a fully orchestrated agent. This repo breaks down the options, compares them side by side, and provides the code patterns you need to get started.
+A developer's map of the **Microsoft AI agents stack** as it stands in May 2026. The platform now spans four layers, and picking the right entry point depends on what you're building:
+
+1. **Model APIs** — Chat Completions and Responses on `/openai/v1` for direct model calls.
+2. **Hosted agent runtime** — Foundry Agent Service for server-managed conversations, tools, and identity.
+3. **Code-first orchestration** — Microsoft Agent Framework (MAF) for multi-agent workflows in Python and .NET.
+4. **Enterprise control plane** — Microsoft Agent 365 (GA May 1, 2026) for Observe / Govern / Secure across every agent in your tenant, regardless of framework.
+
+This repo breaks each layer down, compares them side by side, and gives you the code patterns to get started. **Who it's for:** developers and architects deciding which API, SDK, or governance surface to adopt for a new or existing agent workload on Microsoft Foundry.
 
 ## The landscape at a glance
 
